@@ -1,7 +1,7 @@
 import DB from "./DB";
 import { log } from "./uitils/log";
 
-function Idb({ dbName, version = new Date().getTime(), tables = [] }) {
+function Idb({ dbName, version = 1, tables = [] }) {
   const db = new DB({
     dbName,
     version

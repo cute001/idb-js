@@ -96,7 +96,7 @@ update_by_primaryKey|通过主键更改某条数据|{Object}|tableName {String} 
         tables: [                                   // *数据库的表，即ObjectStore
             {
                 tableName: "grade",                 // *表名
-                option: { keyPath: "id" },          // 表配置，即ObjectStore配置，此处指明主键为id
+                option: { autoIncrement: true },          // 表配置，即ObjectStore配置，不指定主键
                 indexs: [                           // 数据库索引（建议加上索引）
                     {
                         key: "id",                  // *索引名
@@ -243,12 +243,7 @@ update_by_primaryKey|通过主键更改某条数据|{Object}|tableName {String} 
         /**
         * @method 查询某张表的所有数据
         * */
-        student_db.queryAll({
-            tableName: "grade",
-            success: (res) => {
-                console.log(res)
-            }
-        });
+        student_db.queryAll(tableName).then(res=>console.log(res));
 
 
 

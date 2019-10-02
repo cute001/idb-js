@@ -19,7 +19,7 @@ const inputOptions = {
   ]
 };
 const outputOptions = {
-  file: 'dist/Idb.js',
+  file: '../chat/common/Idb.js',
   format: 'cjs',
   name: 'Idb'
 };
