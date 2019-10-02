@@ -21,7 +21,8 @@ const inputOptions = {
 const outputOptions = {
   file: '../chat/common/Idb.js',
   format: 'cjs',
-  name: 'Idb'
+  name: 'Idb',
+	sourcemap:true
 };
 
 async function build() {

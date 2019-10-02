@@ -94,63 +94,36 @@ class DB {
   }
 
   /**
-   * @method 查询某张表的所有数据
-   * @param String tableName 表名
-   * @return Promise
-   * */
-  queryAll(tableName) {
-		return new Promise((resolve, reject)=>{
-			const handler = () => {
-			  const res = [];
-				const request =this.__create_transaction(
-			    tableName,
-			    "readonly"
-			  ).openCursor()
-			  request.onsuccess = e =>
-			    this.__cursor_success(e, {
-			      condition: () => true,
-			      handler: ({ currentValue }) => res.push(currentValue),
-			      over: () => resolve(res)
-			    });
-				request.onerror = e => reject('queryAll,in openCursor onerror ')
-			};
-			this.__action(handler);
-		})
-    
-
-    
-  }
-
-  /**
    * @method 查询
    * @param String tableName 表名
-   * @param  Function condition 查询的条件，遍历，与filter类似
+   * @param  Mixed  condition 查询的条件，遍历，与filter类似
 	 *   @arg {Object} 每个元素
 	 *   @return 条件
+	 * 传入非函数时为查询全部，传入函数为条件查询
    * @return Promise
    * */
   query( tableName, condition) {
 		return new Promise((resolve, reject)=>{
-			if (typeof condition !== "function") {
-			  reject("in query,condition is required,and type is function");
+			if( typeof condition !== "function"){
+				condition=()=>true
 			}
 			
 			const handler = () => {
-			  let res = [];
-				const request = this.__create_transaction(
-			    tableName,
-			    "readonly"
-			  ).openCursor()
+				let res = [];
+				const request = this.__create_transaction(tableName, "readonly").openCursor()
+				
 				request.onsuccess = e =>
-			    this.__cursor_success(e, {
-			      condition,
-			      handler: ({ currentValue }) => res.push(currentValue),
-			      over: () => resolve(res)
-			    });
+					this.__cursor_success(e, {
+						condition,
+						handler: ({ currentValue }) => res.push(currentValue),
+						over: () => resolve(res)
+					});
+					
 				request.onerror = e => reject('query,in openCursor onerror ')
 			};
 			
 			this.__action(handler);
+			
 		})
   }
 
@@ -230,7 +203,7 @@ class DB {
    *   @property {Function} handle 处理函数，接收本条数据的引用，对其修改
    *   @property {Function} [success] 修改成功的回调   @return {Object} 返回被修改后的值
    * */
-  update_by_primaryKey({ tableName, target, success = () => {}, handle }) {
+  update_by_primaryKey({ tableName, target,handle, success = () => {}  }) {
     if (typeof success !== "function") {
       log_error("in update_by_primaryKey，success必须是一个Function类型");
       return;
@@ -299,16 +272,27 @@ class DB {
   }
 
   /**
-   * @method 查询数据（主键值）
+   * @method 查询数据（主键值，索引）
    * @param String tableName 表名
-	 * @param Number|String target 主键值
+	 * @param Number|String|Array|Object target 主键值
 	 * @return Promise
    * */
   find(tableName, target) {
 		return new Promise((resolve, reject)=>{
-			if(typeof target === 'string' || typeof target === 'number'){
 				const handleFn = () => {
-				  let request =this.__create_transaction(tableName, "readonly").get(target)
+					let request ,indexName,value
+					if(isArray(target)){
+						[indexName,value]=target
+						request =this.__create_transaction(tableName, "readonly").index(indexName).getAll(value)
+					}else if(isObject(target)){
+						for(let key in target){
+							indexName=key
+							value= target[key]
+						}
+						request =this.__create_transaction(tableName, "readonly").index(indexName).getAll(value)
+					}else{
+						request =this.__create_transaction(tableName, "readonly").getAll(target)
+					}
 					request.onsuccess = e => {
 				    const result = e.target.result||null;
 				    resolve(result);
@@ -316,36 +300,10 @@ class DB {
 					request.onerror = e => reject('find,in openCursor onerror ')
 				};
 				this.__action(handleFn);
-			}else{
-				
-			}
 		})
   }
 
-  /**
-   * @method 查询数据（索引）
-   * @param {Object}
-   *   @property {String} tableName 表名
-   *   @property {Number|String} indexName 索引名
-   *   @property {Number|String} target 索引值
-   *   @property {Function} [success] 查询成功的回调，返回查询成功的数据   @return {Object} 返回查到的结果
-   *
-   * */
-  query_by_index({ tableName, indexName, target, success = () => {} }) {
-    if (typeof success !== "function") {
-      log_error("in query_by_index,success必须是一个Function类型");
-      return;
-    }
-    const handleFn = () => {
-      this.__create_transaction(tableName, "readonly")
-        .index(indexName)
-        .get(target).onsuccess = e => {
-        const result = e.target.result;
-        success(result || null);
-      };
-    };
-    this.__action(handleFn);
-  }
+  
 
   /**
    * @method 游标开启成功,遍历游标

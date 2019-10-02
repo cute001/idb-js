@@ -1,5 +1,4 @@
 import DB from "./DB";
-import { log } from "./uitils/log";
 
 function Idb({ dbName, version = 1, tables = [] }) {
   const db = new DB({
@@ -15,7 +14,6 @@ function Idb({ dbName, version = 1, tables = [] }) {
   return new Promise((resolve, reject) => {
     db.open({
       success: () => {
-        log(`数据库 ${dbName} 已经打开`);
         resolve(db);
       },
       error: err => {

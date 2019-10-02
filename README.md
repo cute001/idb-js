@@ -5,13 +5,15 @@
 
 ### _安装：_
 ```
-    npm install idb-js --save
+	git clone https://github.com/cute001/idb-js 
+	cd idb-js
+  npm run build 
 ```
 
 ### _使用：_
 * 第一步： 引入Idb
 ```
-    import Idb from 'idb-js'  //  引入Idb
+    import Idb from './Idb-js.js'  //  引入Idb
 ```
 * 第二步： 引入数据库配置
 ```
@@ -36,53 +38,42 @@ close_db|关闭数据库|空|-
 delete_db|删除数据库|空|-  
 clear_table|清空某张表的数据|{Object}|tableName {String} 表名 （required）
 
-### 添加（insert）：
-方法|方法名|参数|参数属性
---|:--|:--:|:--
-insert|添加单条或者多条数据|{ Object}|tableName {String} 表名 （required）
-||||data {Object \| Array} 添加的值 （required）
-||||success {Function} 添加成功的回调
-
-### 查询（query）：
-
+### 添加（insert） 返回Promise：
+成功在then中，失败在catch中，方便查询成功后反回 Promise.resolve(),做链式操作
 
 方法|方法名|参数|参数属性
 --|:--|:--:|:--
-query|查询匹配到的数据（可查询多条数据,游标）|{Object}|tableName {String} 表名 （required）
-||||condition {Function} 匹配条件（required）
-||||success {Function} 查询成功的回调 @arg {Array} 接收结果
-query_by_primaryKey|通过主键查询某条数据|{Object}|tableName {String} 表名 （required）
-||||target { String \| Number } 主键值 （required）
-||||success {Function} 查询成功的回调 @arg {Array} 接收结果
-query_by_index|通过索引查询某条数据（数据库必须建立了索引）|{Object}|tableName {String} 表名 （required）
-||||indexName { String } 目标索引 （required）
-||||target { String \| Number } 目标索引值 （required）
-||||success {Function} 查询成功的回调 @arg {Array} 接收结果
-queryAll|查询某张表的所有数据|{Object}| tableName {String} 表名 （required）
-||||success {Function} 查询成功的回调 @arg {Array} 接收结果
+insert|添加单条或者多条数据|tableName|String 表名 （required）
+||data|Object 数据 （required）
+
+### 查询（query） 返回Promise：
+返回数组，或NULL，即使查到一个也是返回数组，查不到返回空
+
+方法|方法名|参数|参数属性
+--|:--|:--:|:--
+query|查询匹配到的数据（可查多条,游标）|tableName|String 表名 （required）
+||condition|Mixed  匹配条件,不传或非函数时为查询全部
+find|根据索引查询|tableName|String 表名 （required）
+||target| Number\|String\|Array\|Object 为数字或字符时，查询主键（required）
 
 ### 删除（delete）：
 方法|方法名|参数|参数属性
 --|:--|:--:|:--
-delete|删除数据（可删除多条数据，游标）|{Object}|tableName {String} 表名 （required）
-||||condition {Function} 匹配条件 （required）
-||||success {Function} 删除成功的回调
-delete_by_primaryKey|通过主键删除某条数据|{Object}|tableName {String} 表名（required）
-||||target { String \| Number } 主键值 （required）
-||||success {Function} 删除成功的回调 @arg {Null}
+delete|删除数据（可删多条，游标）|tableName| String 表名 （required）
+||condition|Function\|String\|Number 为Function按条件删除 其它按主键删除 （required）
 
 
 ### 修改（update）：
 方法|方法名|参数|参数属性
 --|:--|:--:|:--
 update|修改数据（可更改多条数据，游标）|{Object}|tableName {String} 表名 （required）
-||||condition {Function} 匹配条件 （required）
-||||handle {Function} 修改方式 （required） @arg {Object} 修改项
-||||success {Function} 修改成功的回调 @arg {Array} 返回被修改后项
+|||condition {Function} 匹配条件 （required）
+|||handle {Function} 修改方式 （required） @arg {Object} 修改项
+|||success {Function} 修改成功的回调 @arg {Array} 返回被修改后项
 update_by_primaryKey|通过主键更改某条数据|{Object}|tableName {String} 表名（required）
-||||target { String \| Number } 主键值 （required）
-||||handle {Function} 修改方式 （required） @arg {Object} 修改项
-||||success {Function} 删除成功的回调 @arg {Object} 修改后的值
+|||target { String \| Number } 主键值 （required）
+|||handle {Function} 修改方式 （required） @arg {Object} 修改项
+|||success {Function} 删除成功的回调 @arg {Object} 修改后的值
 
 ## 例子：
 
@@ -96,7 +87,7 @@ update_by_primaryKey|通过主键更改某条数据|{Object}|tableName {String} 
         tables: [                                   // *数据库的表，即ObjectStore
             {
                 tableName: "grade",                 // *表名
-                option: { autoIncrement: true },          // 表配置，即ObjectStore配置，不指定主键
+                option: { keyPath: "id", autoIncrement: true },          // 表配置，即ObjectStore配置，不指定主键
                 indexs: [                           // 数据库索引（建议加上索引）
                     {
                         key: "id",                  // *索引名
@@ -166,137 +157,84 @@ update_by_primaryKey|通过主键更改某条数据|{Object}|tableName {String} 
         * @method 增加单条数据
         * */
 
-        student_db.insert({
-                tableName: "grade",
-                data: {
-                    id: 1,
-                    score: 98,
-                    name: "小明"
-                },
-                success: () => console.log("添加成功")
+        student_db.insert("grade",{
+					id: 1,
+					score: 98,
+					name: "小明"
         });
        
        
-       /**
-        * @method 增加多条数据
-        * */
+	 /**
+		* @method 增加多条数据
+		* */
 
-        student_db.insert({
-                tableName: "grade",
-                data: [{
-                    id: 1,
-                    score: 98,
-                    name: "小明"
-                },{
-                    id: 2,
-                    score: 99,
-                    name: "小方"
-                }],
-                success: () => console.log("添加成功")
-        });
+	student_db.insert(
+		"grade",
+			[{
+					id: 1,
+					score: 98,
+					name: "小明"
+			},{
+					id: 2,
+					score: 99,
+					name: "小方"
+			}],
+	);
 
 
-        /**
-        * @method 查询数据（游标）
-        * */
+	/**
+	* @method 查询数据（游标） 
+	* */
 
-        student_db.query({
-            tableName: "grade",
-            condition: (item)=> item.score == 100,
-            success: r => {
-                console.log(r);
-            }
-        });
+	student_db.query("grade");//所有数据
+	student_db.query("grade",item=>item.score>91);//条件查询
       
        
-        /**
-        * @method 修改数据
-        * */
-
-        student_db.update({
-            tableName: "grade",
-            condition:item => item.name == '小明',
-            handle: r => {
-                r.score = 80;
-            },
-            success: r => {
-                console.log("修改成功", r);
-            }
-        });
+       
         
+	/**
+	* @method 删除数据
+	* */
+
+	student_db.delete("grade",(item)=> item.name == '小明');//条件删除
+	student_db.delete("grade",22);//按键删除
 
 
-       /**
-        * @method 删除数据
-        * */
+	/**
+	* @method 清空某张表的数据
+	* */
+	student_db.clear_table({
+			tableName:'grade'
+	})
 
-        student_db.delete({
-          tableName: "grade",
-          condition: (item)=> item.name == '小明',
-          success: (res) => {
-            console.log("删除成功");
-          }
-        });
-
-
-
-        /**
-        * @method 查询某张表的所有数据
-        * */
-        student_db.queryAll(tableName).then(res=>console.log(res));
-
-
-
-        /**
-        * @method 根据主键查询某条数据
-        * */
-        student_db.query_by_primaryKey({
-            tableName:'grade',
-            target:1,
-            success:(res)=>{console.log(res)}
-        })
-
-
-        /**
-        * @method 根据索引查询某条数据
-        * */
-        student_db.query_by_index({
-            tableName:'grade',
-            indexName:'name',
-            target:'小明',
-            success:(res)=>{console.log(res)}
-        })
-
-        /**
-        * @method 清空某张表的数据
-        * */
-        student_db.clear_table({
-            tableName:'grade'
-        })
-
-        /**
-        * @method 通过主键删除某条数据
-        * */
-        student_db.delete_by_primaryKey({
-            tableName:'grade',
-            target:1,
-            success:()=>console.log('删除成功')
-        })
-
-
-        /**
-        * @method 通过主键更改某条数据
-        * */
-        student_db.update_by_primaryKey({
-            tableName: "grade",
-            target: 1,
-            handle: val => (val.score = 101),
-            success: res => {
-                console.log(res);
-            }
-        });
-    },err => {
-        console.log(err)
-    });
+	/**
+	* @method 通过主键更改某条数据
+	* */
+	student_db.update_by_primaryKey({
+			tableName: "grade",
+			target: 1,
+			handle: val => (val.score = 101),
+			success: res => {
+					console.log(res);
+			}
+	});
+	},err => {
+		console.log(err)
+	});
+		
+	/**
+	* @method 修改数据
+	* */
+		
+	student_db.update({
+			tableName: "grade",
+			condition:item => item.name == '小明',
+			handle: r => {
+					r.score = 80;
+			},
+			success: r => {
+					console.log("修改成功", r);
+			}
+	});
 
 ```
