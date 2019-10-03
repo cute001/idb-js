@@ -75,7 +75,7 @@ class DB {
   }
 
   //清空某张表的数据
-  clear_table({ tableName }) {
+  clear_table( tableName ) {
     this.__action(() =>
       this.__create_transaction(tableName, "readwrite").clear()
     );
@@ -157,17 +157,18 @@ class DB {
    * */
   delete(tableName, condition ) {
 		return new Promise((resolve, reject)=>{
+			let handler,request
 			if (typeof condition !== "function") {
-				const handler= () => {
-					const request = this.__create_transaction(tableName, "readwrite").delete(condition);
+				handler= () => {
+					request = this.__create_transaction(tableName, "readwrite").delete(condition);
 					request.onsuccess = () => resolve();
 					request.onerror = () => reject();
 				}
 			}else{
-				const handler = () => {
+				handler = () => {
 				  let res = [];
 				
-				  let request= this.__create_transaction(
+				  request= this.__create_transaction(
 				    tableName,
 				    "readwrite"
 				  ).openCursor()
@@ -192,83 +193,64 @@ class DB {
 			this.__action(handler);
 		})
   }
-
   
 
   /**
-   * @method 修改某条数据(主键)
-   * @param {Object}
-   *   @property {String} tableName 表名
-   *   @property {String\|Number} target 目标主键值
-   *   @property {Function} handle 处理函数，接收本条数据的引用，对其修改
-   *   @property {Function} [success] 修改成功的回调   @return {Object} 返回被修改后的值
-   * */
-  update_by_primaryKey({ tableName, target,handle, success = () => {}  }) {
-    if (typeof success !== "function") {
-      log_error("in update_by_primaryKey，success必须是一个Function类型");
-      return;
-    }
-    if (typeof handle !== "function") {
-      log_error("in update_by_primaryKey，handle必须是一个Function类型");
-      return;
-    }
-
-    this.__action(() => {
-      const store = this.__create_transaction(tableName, "readwrite");
-      store.get(target).onsuccess = e => {
-        const currentValue = e.target.result;
-        handle(currentValue);
-        store.put(currentValue);
-        success(currentValue);
-      };
-    });
-  }
-
-  /**
    * @method 修改数据
-   * @param {Object}
-   *   @property {String} tableName 表名
-   *   @property {Function} condition 查询的条件，遍历，与filter类似
-   *      @arg {Object} 每个元素
-   *      @return 条件
-   *   @property {Function} handle 处理函数，接收本条数据的引用，对其修改
-   *   @property {Function} [success] 修改成功的回调，返回修改成功的数据   @return {Array} 返回被修改后的值
+   * @param String tableName 表名
+	 * @param Function\|String\|Number  target String|Number,按目标主键值 Function 查询的条件，遍历，与filter类似
+	 * 	 @arg {Object} 每个元素
+   *   @return 条件
+   * @param Function handle 处理函数，接收本条数据的引用，对其修改
+   * @return Promise
    * */
-  update({ tableName, condition, handle, success = () => {} }) {
-		
-    if (typeof handle !== "function") {
-      log_error("in update,handle必须是一个function类型");
-      return;
-    }
-    if (typeof condition !== "function") {
-      log_error("in update,condition is required,and type is function");
-      return;
-    }
-
-    const handler = () => {
-      let res = [];
-
-      this.__create_transaction(
-        tableName,
-        "readwrite"
-      ).openCursor().onsuccess = e =>
-        this.__cursor_success(e, {
-          condition,
-          handler: ({ currentValue, cursor }) => {
-            handle(currentValue);
-            res.push(currentValue);
-            cursor.update(currentValue);
-          },
-          over: () => {
-            if (res.length == 0) {
-              log_error(`in update ,数据库中没有任何符合condition的元素`);
-              return;
-            }
-            success(res);
-          }
-        });
-    };
-    this.__action(handler);
+  update( tableName, condition, handle) {
+		return new Promise((resolve, reject)=>{
+			if (typeof handle !== "function") {
+			  reject("in update,handle必须是一个function类型");
+			}else{
+				const handler = () => {
+					if (typeof condition !== "function"){
+						
+						const store = this.__create_transaction(tableName, "readwrite");
+						const request = store.get(condition);
+						request.onsuccess =e => {
+							const currentValue = e.target.result;
+							handle(currentValue);
+							store.put(currentValue);
+							resolve(currentValue);
+						}
+						request.onerror= e=>reject('delete,in openCursor onerror ')
+						
+					}else{
+						
+						let res = [];
+						const request= this.__create_transaction(tableName,"readwrite").openCursor()
+						request.onsuccess = e =>
+							this.__cursor_success(e, {
+								condition,
+								handler: ({ currentValue, cursor }) => {
+									handle(currentValue);
+									res.push(currentValue);
+									cursor.update(currentValue);
+								},
+								over: () => {
+									if (res.length == 0) {
+										reject(`in update ,数据库中没有任何符合condition的元素`);
+										resolve(null);
+									}else{
+										resolve(res);
+									}
+								}
+							});
+						request.onerror= e=>reject('delete,in openCursor onerror ')
+						
+					}  
+				};
+				
+				this.__action(handler);
+			}
+		})
   }
 
   /**
@@ -289,7 +271,11 @@ class DB {
 							indexName=key
 							value= target[key]
 						}
-						request =this.__create_transaction(tableName, "readonly").index(indexName).getAll(value)
+						if(value){
+							request =this.__create_transaction(tableName, "readonly").index(indexName).getAll(value)
+						}else{
+							request =this.__create_transaction(tableName, "readonly").index(indexName).getAll()
+						}
 					}else{
 						request =this.__create_transaction(tableName, "readonly").getAll(target)
 					}
