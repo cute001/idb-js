@@ -19,10 +19,10 @@ const inputOptions = {
   ]
 };
 const outputOptions = {
-  file: '../chat/common/Idb.js',
+  file: 'dist/idb.js',
   format: 'cjs',
   name: 'Idb',
-	sourcemap:true
+	//sourcemap:true
 };
 
 async function build() {

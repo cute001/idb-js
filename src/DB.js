@@ -30,12 +30,12 @@ class DB {
 
     // 打开前要先添加表
     if (this.table.length == 0 && !this._status) {
-      log_error("打开前要先用add_table添加表");
+      error("打开前要先用add_table添加表");
       return;
     }
 
     if (typeof success !== "function") {
-      log_error("open中success必须是一个function类型");
+      error("open中success必须是一个function类型");
       return;
     }
 
