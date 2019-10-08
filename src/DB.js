@@ -142,7 +142,7 @@ class DB {
 			  const store = this.__create_transaction(tableName, "readwrite");
 			  isArray(data) ? data.forEach(v => store.put(v)) : store.put(data);
 			  // this.__create_transaction(tableName, "readwrite").add(data);
-			  resolve();
+			  resolve(data);
 			});
 		})
   }
@@ -180,10 +180,11 @@ class DB {
 				        cursor.delete();
 				      },
 				      over: () => {
-								resolve(res);
 				        if (res.length == 0) {
 				          reject(`in delete ,数据库中没有任何符合condition的元素`);
-				        }
+				        }else{
+									resolve(res);
+								}
 				      }
 				    });
 					request.onerror = e => reject('delete,in openCursor onerror ')
@@ -236,7 +237,7 @@ class DB {
 								},
 								over: () => {
 									if (res.length == 0) {
-										reject(`in update ,数据库中没有任何符合condition的元素`);
+										//reject(`in update ,数据库中没有任何符合condition的元素`);
 										resolve(null);
 									}else{
 										resolve(res);

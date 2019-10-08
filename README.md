@@ -167,7 +167,9 @@ update|修改数据（可改多条，游标）|tableName|tableName String 表名
                 score: 99,
                 name: "小方"
             }
-        ]);
+        ]).then(response=>{
+					//array [{id:1,score:98,name:"小明"},{id:2,score:99,name:"小方"}];
+				});
     
     
 		/**
